@@ -1,3 +1,4 @@
+// src/components/TableauDisplay.jsx
 import {
   Table,
   TableHeader,
@@ -19,11 +20,15 @@ export default function TableauDisplay({ tableau }) {
     cj = [],
     zj = [],
     zjMinusCj = [],
-    qi = []
+    qi = [],
+    pivot = {}
   } = tableau
+
+  const { pivotCol, pivotRow } = pivot
 
   const rhsIndex = headers.findIndex(h => h.toLowerCase() === "rhs")
 
+  // build a mask of which columns we actually render
   const visibleIndex = headers.map((h, i) => {
     if (i === rhsIndex) return false
     if (h.startsWith("a") && !basis.includes(h)) return false
@@ -41,7 +46,13 @@ export default function TableauDisplay({ tableau }) {
             </TableCell>
             {cj.map((val, i) =>
               visibleIndex[i] ? (
-                <TableCell key={i} className="text-center">
+                <TableCell
+                  key={i}
+                  className={
+                    "text-center " +
+                    (i === pivotCol ? "bg-yellow-100" : "")
+                  }
+                >
                   {val}
                 </TableCell>
               ) : null
@@ -56,7 +67,13 @@ export default function TableauDisplay({ tableau }) {
             <TableHead className="text-center">Q</TableHead>
             {headers.map((h, i) =>
               visibleIndex[i] ? (
-                <TableHead key={i} className="text-center">
+                <TableHead
+                  key={i}
+                  className={
+                    "text-center " +
+                    (i === pivotCol ? "bg-yellow-100" : "")
+                  }
+                >
                   {h}
                 </TableHead>
               ) : null
@@ -67,13 +84,26 @@ export default function TableauDisplay({ tableau }) {
 
         <TableBody>
           {rows.map((row, i) => (
-            <TableRow key={i}>
+            <TableRow
+              key={i}
+              className={i === pivotRow ? "bg-yellow-50" : ""}
+            >
               <TableCell className="text-center">{cb[i]}</TableCell>
               <TableCell className="text-center">{basis[i]}</TableCell>
               <TableCell className="text-center">{row[rhsIndex]}</TableCell>
               {row.map((val, j) =>
                 visibleIndex[j] ? (
-                  <TableCell key={j} className="text-center">
+                  <TableCell
+                    key={j}
+                    className={
+                      "text-center " +
+                      (j === pivotCol && i === pivotRow
+                        ? "bg-yellow-300"
+                        : j === pivotCol
+                        ? "bg-yellow-100"
+                        : "")
+                    }
+                  >
                     {val}
                   </TableCell>
                 ) : null
@@ -89,7 +119,13 @@ export default function TableauDisplay({ tableau }) {
             </TableCell>
             {zj.map((val, i) =>
               visibleIndex[i] ? (
-                <TableCell key={i} className="text-center">
+                <TableCell
+                  key={i}
+                  className={
+                    "text-center " +
+                    (i === pivotCol ? "bg-yellow-100" : "")
+                  }
+                >
                   {val}
                 </TableCell>
               ) : null
@@ -104,7 +140,13 @@ export default function TableauDisplay({ tableau }) {
             </TableCell>
             {zjMinusCj.map((val, i) =>
               visibleIndex[i] ? (
-                <TableCell key={i} className="text-center">
+                <TableCell
+                  key={i}
+                  className={
+                    "text-center " +
+                    (i === pivotCol ? "bg-yellow-100" : "")
+                  }
+                >
                   {val}
                 </TableCell>
               ) : null
@@ -114,7 +156,6 @@ export default function TableauDisplay({ tableau }) {
         </TableBody>
       </Table>
 
-      {/* ←── NEW: show infeasible message if flagged */}
       {tableau.infeasible && (
         <p className="mt-4 text-center text-red-500 font-semibold">
           Solution is not feasible
