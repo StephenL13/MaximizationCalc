@@ -1,80 +1,144 @@
 import React from "react"
 import { Input } from "@/components/ui/input"
-import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/components/ui/select"
+import {
+  Select,
+  SelectTrigger,
+  SelectContent,
+  SelectItem,
+  SelectValue,
+} from "@/components/ui/select"
 
-export default function ConstraintRow({ index, coeffs = [], signs = [], sign, rhs, onChange, variableCount }) {
-  // Handle coefficient change
+export default function ConstraintRow({
+  index,
+  coeffs = [],
+  signs = [],
+  sign,
+  rhsSign = "+",
+  rhs,
+  onChange,
+  variableCount,
+}) {
+  // helper to emit the full constraint object
+  const emit = (updates) => {
+    onChange(index, {
+      coeffs,
+      signs,
+      sign,
+      rhsSign,
+      rhs,
+      ...updates,
+    })
+  }
+
+  // Update one coefficient
   const handleCoeffChange = (i, val) => {
-    const updatedCoeffs = [...coeffs]
-    updatedCoeffs[i] = val
-    onChange(index, { coeffs: updatedCoeffs, signs, sign, rhs })
+    const updated = [...coeffs]
+    updated[i] = val
+    emit({ coeffs: updated })
   }
 
-  // Handle plus/minus sign change between variables
-  const handleInterSignChange = (i, value) => {
-    const updatedSigns = [...signs]
-    updatedSigns[i] = value
-    onChange(index, { coeffs, signs: updatedSigns, sign, rhs })
+  // Update the sign in front of xᵢ
+  const handleTermSignChange = (i, value) => {
+    const updated = [...signs]
+    updated[i] = value
+    emit({ signs: updated })
   }
 
-  // Handle constraint sign change (<=, >=, =)
-  const handleSignChange = value => {
-    onChange(index, { coeffs, signs, sign: value, rhs })
+  // Update the ≤/≥/= selector
+  const handleRelationChange = (value) => {
+    emit({ sign: value })
   }
 
-  // Handle RHS change
-  const handleRHSChange = e => {
-    onChange(index, { coeffs, signs, sign, rhs: e.target.value })
+  // Update RHS
+  const handleRHSChange = (e) => {
+    emit({ rhs: e.target.value })
+  }
+
+  // Update RHS sign
+  const handleRhsSignChange = (value) => {
+    emit({ rhsSign: value })
   }
 
   return (
-    <div className="flex items-center gap-2">
-      {Array.from({ length: variableCount }).map((_, i) => (
-        <React.Fragment key={i}>
-              <div className="flex items-center gap-1">
-                  <Input
-                      type="text"
-                      value={coeffs[i] || ""}
-                      onChange={e => handleCoeffChange(i, e.target.value)}
-                      placeholder="value"
-                      className="w-16 text-center"
-                  />
-                  <span className="text-sm text-muted-foreground">x{i + 1}</span>
-              </div>
-          {i < variableCount - 1 && (
-              <Select
-               value={signs[i] ?? "+"}
-                onValueChange={value => handleInterSignChange(i, value)}
-               >
-             <SelectTrigger className="w-16">
-               <SelectValue />
-               </SelectTrigger>
-               <SelectContent>
-             <SelectItem value="+">+</SelectItem>
-             <SelectItem value="-">-</SelectItem>
-               </SelectContent>
-           </Select>
+    <div className="w-full space-y-3">
+      {/* 1) Terms row */}
+      <div className="flex flex-wrap items-center gap-2">
+        {coeffs.map((c, i) => (
+          <React.Fragment key={i}>
+            {/* term sign dropdown */}
+            <Select
+              value={signs[i] ?? "+"}
+              onValueChange={(v) => handleTermSignChange(i, v)}
+            >
+              <SelectTrigger className="w-15 h-10 flex items-center justify-center">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="py-1">
+                <SelectItem value="+">+</SelectItem>
+                <SelectItem value="-">−</SelectItem>
+              </SelectContent>
+            </Select>
 
-          )}
-        </React.Fragment>
-      ))}
-       <Select value={sign ?? "<="} onValueChange={handleSignChange}>
-         <SelectTrigger className="w-16">
-          <SelectValue />
+            {/* numeric coefficient */}
+            <Input
+              type="number"
+              step="any"
+              min="0"
+              value={c}
+              onKeyDown={(e) => {
+                // block scientific e, plus, minus
+                if (["e", "E", "+", "-"].includes(e.key)) e.preventDefault()
+              }}
+              onChange={(e) => handleCoeffChange(i, e.target.value)}
+              placeholder="value"
+              className="w-20 text-center"
+            />
+
+            {/* variable label */}
+            <span className="text-sm text-muted-foreground pr-2">
+              {`x${i + 1}`}
+              {i + 1 < 10 && "\u00A0"}
+            </span>
+          </React.Fragment>
+        ))}
+      </div>
+
+      {/* 2) Relation + RHS row */}
+      <div className="w-full flex items-center gap-2">
+        <Select value={sign} onValueChange={handleRelationChange}>
+          <SelectTrigger className="w-15 h-10 flex items-center justify-center">
+            <SelectValue />
           </SelectTrigger>
-          <SelectContent>
-          <SelectItem value="<=">{"<="}</SelectItem>
-           <SelectItem value=">=">{">="}</SelectItem>
-           <SelectItem value="=">{"="}</SelectItem>
-            </SelectContent>
-          </Select>
-      <Input
-        type="text"
-        value={rhs}
-        onChange={handleRHSChange}
-        placeholder="RHS"
-        className="w-20 text-center"
-      />
+          <SelectContent className="py-1">
+            <SelectItem value="<=">{"≤"}</SelectItem>
+            <SelectItem value=">=">{">="}</SelectItem>
+            <SelectItem value="=">{"="}</SelectItem>
+          </SelectContent>
+        </Select>
+
+        {/* RHS sign picker */}
+        <Select value={rhsSign} onValueChange={handleRhsSignChange}>
+          <SelectTrigger className="w-15 h-10 flex items-center justify-center">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent className="py-1">
+            <SelectItem value="+">+</SelectItem>
+            <SelectItem value="-">−</SelectItem>
+          </SelectContent>
+        </Select>
+
+        <Input
+          type="number"
+          step="any"
+          value={rhs}
+          onKeyDown={(e) => {
+            if (["e", "E", "+", "-"].includes(e.key)) e.preventDefault()
+          }}
+          onChange={handleRHSChange}
+          placeholder="RHS"
+          className="flex-1 text-center"
+        />
+      </div>
     </div>
-  )
+)
 }
